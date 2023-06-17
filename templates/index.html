@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Записи за день</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+.more-block {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+}
+</style>
+
+    <script>
+        function getRecords(date) {
+            // Отправить запрос на сервер с выбранной датой
+$.ajax({
+    url: '/getrecords',
+    type: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer <your_token>'
+    },
+    data: JSON.stringify({ date: date }),
+    success: function(response) {
+        // Отобразить полученные данные в таблице
+        displayRecords(response);
+    },
+    error: function(error) {
+        console.log(error);
+    }
+});
+        }
+
+        function displayRecords(records) {
+
+var table = $('<table>');
+var thead = $('<thead>').append('<tr><th>Сотрудник</th><th>Услуга</th><th>Клиент</th><th>Дата визита</th><th>Статус визита</th><th>Статус оплаты</th><th>Статус печати чека</th></tr>');
+table.append(thead);
+
+var tbody = $('<tbody>');
+
+for (var i = 0; i < records.length; i++) {
+    var record = records[i];
+    var row = $('<tr>');
+    row.append('<td>' + record.staff_name + '</td>');
+
+    var services = [];
+    for (var j = 0; j < record.services.length; j++) {
+        services.push(record.services[j].title);
+    }
+    row.append('<td>' + services.join(", ") + '</td>');
+
+    row.append('<td>' + record.client.name + '<br>' + record.client.phone + '</td>');
+    row.append('<td>' + record.date + '</td>');
+    row.append('<td>' + record.attendance + '</td>');
+    row.append('<td>' + record.paid + '</td>');
+    row.append('<td>' + record.bills + '</td>');
+
+    // Создание кнопки "More" и скрытого блока с дополнительными полями
+    var moreButton = $('<button>').text('More');
+    var moreBlock = $('<div>').addClass('more-block').hide();
+
+    // Обработчик события нажатия кнопки "More"
+    moreButton.on('click', createMoreButtonClickHandler(record.more, moreBlock));
+
+    // Добавление кнопки "More" в ячейку
+    var moreCell = $('<td>').append(moreButton);
+    row.append(moreCell);
+
+    tbody.append(row);
+    tbody.append($('<tr>').append($('<td>').attr('colspan', '7').append(moreBlock)));
+}
+
+
+function createMoreButtonClickHandler(moreData, moreBlock) {
+    return function () {
+        moreBlock.empty();
+        for (var i = 0; i < moreData.length; i++) {
+            var data = moreData[i];
+            var documents = data.documents;
+
+            var documentsList = $('<ul>');
+            for (var j = 0; j < documents.length; j++) {
+                var document = documents[j];
+                var listItem = $('<li>').text('Document ID: ' + document.id + ', Number: ' + document.number + ', Title: ' + document.title + ', Type: ' + document.type);
+                documentsList.append(listItem);
+            }
+            var document = $('<p>').text('Document ID: ' + documents[0].id);
+            var recordId = $('<p>').text('Record ID: ' + data.record_id);
+            var visitId = $('<p>').text('Visit ID: ' + data.visit_id);
+
+
+            moreBlock.append(document);
+            moreBlock.append(recordId);
+            moreBlock.append(visitId);
+            moreBlock.append($('<p>').text('Documents:').append(documentsList));
+        }
+        moreBlock.slideToggle();
+    };
+}
+
+
+
+table.append(tbody);
+
+$('#result').empty().append(table);
+
+
+
+        }
+    </script>
+</head>
+<body>
+    <h1>Записи за день</h1>
+    <p>Попытка сделать круто (впрочем, как всегда)</p>
+
+    <form onsubmit="event.preventDefault(); getRecords(document.getElementById('date').value);">
+        <label for="date">Выберите дату:</label>
+        <input type="date" id="date">
+        <button type="submit">Показать</button>
+    </form>
+
+    <div id="result"></div>
+</body>
+</html>
